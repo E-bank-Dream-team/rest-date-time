@@ -1,0 +1,92 @@
+node{
+
+    properties([
+        parameters([
+            string(name: 'GIT_URL',
+                   description: "URL of project's git repository",
+                   defaultValue: ''),
+            credentials(name: 'GIT_CREDENTIALS',
+                        description: 'Credentials for connection to git repository. Must be added to Jenkins instance.',
+                        defaultValue: '',
+                        required: true
+                        credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl')
+        ])
+    ])
+
+    stage('Checkout code'){
+        git branch: "${BRANCH_NAME}", url: "${GIT_URL}", credentialsId: "${GIT_CREDENTIALS}"
+    }
+
+    stage('Compile'){
+        docker.image('maven:3.6.3-openjdk-11').inside{
+            sh 'mvn compile test-compile'
+        }
+    }
+
+    stage('Test'){
+        def unitTestsFailed = false
+        try {
+            docker.image('maven:3.6.3-openjdk-11').inside{
+                sh 'mvn test'
+            }
+        } catch(Exception e) {
+            unitTestsFailed = true
+        } finally {
+            junit 'target/surefire-reports/*.xml'
+            publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'target/site/allure/report/unit', reportFiles: 'index.html', reportName: 'Allure Unit Tests Report', reportTitles: ''])
+        }
+        if (unitTestsFailed) {
+            error 'Unit tests failed'
+        }
+    }
+
+    stage('Static analysis') {
+        docker.image('maven:3.6.3-openjdk-11').inside{
+            sh 'mvn -P static-analysis test'
+        }
+        publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'target/site/jacoco', reportFiles: 'index.html', reportName: 'Coverage Report', reportTitles: ''])
+        publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'target/site/pmd', reportFiles: 'pmd.html', reportName: 'PMD Report', reportTitles: ''])
+    }
+
+    stage('Security scan') {
+        echo 'TODO: Security scan'
+    }
+
+    stage('Integration tests'){
+        def itTestsFailed = false
+        try {
+            docker.image('maven:3.6.3-openjdk-11').inside{
+                sh 'mvn -Dskip.unit.tests=true verify'
+            }
+        } catch(Exception e) {
+            itTestsFailed = true
+        } finally {
+            junit 'target/failsafe-reports/*.xml'
+            // needs some tweaking on jenkins to combine with unit test report
+            //allure includeProperties: false, jdk: '', report: 'target/site/allure/report/it', results: [[path: 'allure/results/unit'], [path: 'allure/results/it']]
+            publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'target/site/allure/report/it', reportFiles: 'index.html', reportName: 'Allure Integration Tests Report', reportTitles: ''])
+            publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'target/site/serenity', reportFiles: 'index.html', reportName: 'Serenity Report', reportTitles: ''])
+        }
+        if (itTestsFailed) {
+            error 'Integration tests failed'
+        }
+    }
+
+    stage('Package'){
+        docker.image('maven:3.6.3-openjdk-11').inside{
+            sh 'mvn package -DskipTests=true'
+        }
+    }
+
+    stage('Build docker image') {
+        def dockerImageId = docker.build('ebank:latest', '-f ./docker/Dockerfile .')
+    }
+
+    stage('Push docker image') {
+        echo 'TODO: Push docker'
+    }
+
+    stage('Remove docker image') {
+        sh "docker image rm -f ${dockerImageId}"
+    }
+}

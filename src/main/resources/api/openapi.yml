@@ -1,0 +1,56 @@
+openapi: "3.0.0"
+info:
+    title: rest-date-time
+    description: This is a simple REST service returning current date and time.
+    termsOfService: "http://swagger.io/terms/"
+    contact:
+        email: tomasz.palka@capgemini.com
+    license:
+        name: Apache 2.0
+        url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+    version: "1.0.0"
+servers:
+    - url: "{protocol}://{host}:{port}"
+      variables:
+          protocol:
+              enum:
+                  - "http"
+                  - "https"
+              default: "http"
+          port:
+              enum:
+                  - "8080"
+                  - "8443"
+              default: "8080"
+          host:
+              enum:
+                  - "localhost"
+              default: "localhost"
+tags:
+    - name: date-time
+      description: Operations about Date and Time
+paths:
+    "/api/v1/dateTime":
+        get:
+            tags:
+                - date-time
+            summary: Get current date and time
+            operationId: getDateTime
+            responses:
+                "200":
+                    description: successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/DateAndTime"
+                "400":
+                    description: Invalid request format
+                    content: {}
+components:
+    schemas:
+        DateAndTime:
+            type: object
+            properties:
+                date-time:
+                    type: string
+                    format: date-time
