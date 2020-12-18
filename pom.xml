@@ -9,7 +9,15 @@
   </parent>
   <groupId>com.example</groupId>
   <artifactId>rest-date-time</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
+
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>E-Bank-Dream-Team Maven GitHub repository</name>
+      <url>https://maven.pkg.github.com/E-bank-Dream-team/rest-date-time</url>
+    </repository>
+  </distributionManagement>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
