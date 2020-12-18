@@ -9,12 +9,15 @@ import java.util.TimeZone;
 
 import com.example.controllers.DateTimeController;
 import com.example.services.DateTimeService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
@@ -30,12 +33,13 @@ public abstract class RestBase {
 
 	@Before
 	public void setup() {
-		Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-		calendar.set(2020, 12, 17, 10, 0, 0);
-		Date date = calendar.getTime();
-		given(dateTimeService.getCurrentDateAndTime()).willReturn(date);
+		given(dateTimeService.getCurrentDateAndTime()).willReturn(new Date());
 
+		// For date formatting
+		MappingJackson2HttpMessageConverter messageConverter = new MappingJackson2HttpMessageConverter();
+		messageConverter.setObjectMapper(new ObjectMapper().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+				.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")));
 		RestAssuredMockMvc.standaloneSetup(
-				MockMvcBuilders.standaloneSetup(dateTimeController));
+				MockMvcBuilders.standaloneSetup(dateTimeController).setMessageConverters(messageConverter));
 	}
 }

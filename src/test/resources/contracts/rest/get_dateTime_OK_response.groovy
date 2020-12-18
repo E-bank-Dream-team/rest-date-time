@@ -29,12 +29,10 @@ then:
             contentType(applicationJson())
         }
         body([
-                [
-                    'date-time': $(c('2020-12-12T10:00:00+00:00'), p(regex(iso8601WithOffset())))
-                ]
+            'date-time': $(c('2020-12-12T10:00:00+00:00'), p(regex(iso8601WithOffset())))
         ])
         bodyMatchers {
-            jsonPath('date-time', byDate())
+            jsonPath('date-time', byRegex(iso8601WithOffset()))
         }
     }
 }
